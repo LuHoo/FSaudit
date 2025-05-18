@@ -1,0 +1,79 @@
+---
+title: "MUS with entire errors"
+author: "Lucas Hoogduin and Paul Touw"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{MUS with entire errors}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+MUS can be employed for compliance or propriety audits, where sampling units are tested for compliance or adherence to standards, rules, or regulations. A non-compliant sampling unit is deemed to be entirely in error, therefore it is expected that we find only 100\% errors. 
+
+We will see that this is the closest relationship between MUS and Attribute Sampling.
+
+We first create an `mus_obj` object, and load it with the parameters.
+```{r}
+library(FSaudit)
+subsidies <- mus_obj(cl = 0.95, 
+                     popBv = 12000000, 
+                     pm = 120000)
+```
+Now we calculate the minimum required sample size as follows (note that the expected error `ee = 0` by default):
+```{r}
+subsidies <- size(subsidies)
+subsidies$n
+```
+This result is exactly equal to attribute sampling, with no deviations allowed in the sample (`c = 0`):
+```{r}
+myAttSample <- att_obj(alpha = 0.05, popn = 12000000, popdev = 120000)
+myAttSample <- size(myAttSample, c = 0)
+myAttSample$n
+```
+In the MUS case, we build in tolerance by increasing the expected error `ee`:
+```{r}
+subsidies <- size(subsidies,
+                  ee = 25369)
+subsidies$n
+```
+Where did this expected error come from? In MUS, it should be one entire error, so the expected error should be equal to one sampling interval. We therefore need the value of the sampling interval to be equal to the expected error. We know from attribute sampling that the sample size increases from 299 to 473 when we want to tolerate one 100\% error. The expected error should therefore be:
+```{r}
+(expectedError <- subsidies$popBv / 473)
+```
+In attribute sampling, this can be achieved either by directly increasing the critical number of deviations, or by specifying the expected error.
+```{r}
+myAttSample <- size(myAttSample, c = 1)
+myAttSample$n
+```
+```{r}
+myAttSample <- size(myAttSample, ee = 20000)
+myAttSample$n
+myAttSample$c
+```
+Note that MUS will yield a different sample size when the expected error is less than 25,369.
+```{r}
+subsidies <- size(subsidies,
+                  ee = 20000)
+subsidies$n
+```
+Therefore, if only 100\% errors are expected, it is advised to calculate the sample size with attribute sampling, and then assigning this sample size to the `mus_obj`, without using the `size` function.
+```{r}
+myAttSample <- att_obj(alpha = 0.05, popn = 12000000, popdev = 120000)
+myAttSample <- size(myAttSample, c = 1)
+myAttSample$n
+subsidies <- mus_obj(cl = 0.95, 
+                     popBv = 12000000, 
+                     pm = 120000,
+                     n = myAttSample$n)
+subsidies$n
+```
+
+

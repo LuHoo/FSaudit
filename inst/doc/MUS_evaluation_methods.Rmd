@@ -1,0 +1,170 @@
+---
+title: "MUS - evaluation methods"
+author: "Lucas Hoogduin & Marcel Boersma "
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{MUS - evaluation methods}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+## Introduction
+In this vignette we show three MUS evaluation methods:
+
+* cell bound
+* Stringer bound
+* PPS estimation
+
+We start with loading the `FSaudit` library.
+
+```{r, echo=TRUE}
+library(FSaudit)
+```
+We sample from the `inventoryData` file, which is part of the `FSaudit` package. The inventory population has a total book value of 7,360,816. Performance materiality is 1,000,000, and we set the expected error to 100,000.
+
+```{r}
+mySample <- mus_obj(bv = inventoryData$bv,
+                    id = inventoryData$item,
+                    pm = 1000000,
+                    ee = 100000,
+                    seed = 98765,
+                    evalMeth = "cell")
+```
+Next, we calculate the required sample size.
+```{r}
+mySample <- size(mySample)
+mySample$n
+```
+We select the sample:
+```{r}
+mySample <- select(mySample)
+head(mySample$sample)
+```
+
+The 26 sampling units are audited, we read the audit values as follows:
+```{r}
+audit_values <- inventoryData[match(mySample$sample$item, inventoryData$item), c("item", "av")]
+head(audit_values)
+```
+The selected sample can be evaluated with three different evaluation methods, cell bound, Stringer bound, and PPS estimation.
+
+
+### Cell bound
+
+The cell bound method is the default evaluation method in `FSaudit`, and therefore does not have to be declared specifically when evaluating the sample. The overstatement evaluation is as follows:
+
+```{r, echo=TRUE}
+mySample <- evaluate(mySample,
+                     av = audit_values$av)
+mySample$evalResults$Over$`Nonzero differences`
+mySample$evalResults$Over$`Projected misstatement`
+mySample$evalResults$Over$`Basic precision`
+mySample$evalResults$Over$`Precision achieved`
+mySample$evalResults$Over$`Upper confidence bound`
+```
+Similar results are available for understatements:
+```{r, echo=TRUE}
+
+mySample$evalResults$Under$`Nonzero differences`
+mySample$evalResults$Under$`Projected misstatement`
+mySample$evalResults$Under$`Basic precision`
+mySample$evalResults$Under$`Precision achieved`
+mySample$evalResults$Under$`Upper confidence bound`
+```
+Detailed calculations for overstatements can be found in the precision calculation argument:
+```{r}
+mySample$evalResults$Over$`Precision calculation`
+```
+And separately for understatements:
+```{r}
+mySample$evalResults$Under$`Precision calculation`
+```
+
+
+### Stringer bound
+
+In this section we show the Stringer bound method as the evaluation strategy. In order to use the Stringer bound method the `evalMeth` attribute in the state object must be set to `stringer` before we call the function `evaluate()`.
+
+```{r, echo=TRUE}
+mySampleStringer <- evaluate(mySample,
+                             av = audit_values$av,
+                             evalMeth = "stringer")
+```
+The summary results for the overstatements are similar to those of the `cell` evaluation method.
+```{r, echo=TRUE}
+mySampleStringer$evalResults$Over$`Nonzero differences`
+mySampleStringer$evalResults$Over$`Projected misstatement`
+mySampleStringer$evalResults$Over$`Basic precision`
+mySampleStringer$evalResults$Over$`Precision achieved`
+mySampleStringer$evalResults$Over$`Upper confidence bound`
+```
+And for understatements:
+```{r}
+mySampleStringer$evalResults$Under$`Nonzero differences`
+mySampleStringer$evalResults$Under$`Projected misstatement`
+mySampleStringer$evalResults$Under$`Basic precision`
+mySampleStringer$evalResults$Under$`Precision achieved`
+mySampleStringer$evalResults$Under$`Upper confidence bound`
+```
+
+
+We first look at the evaluation of the overstatements:
+
+```{r}
+mySampleStringer$evalResults$Over$`Precision calculation`
+```
+And then at the understatements:
+```{r}
+mySampleStringer$evalResults$Under$`Precision calculation`
+
+```
+
+
+### PPS estimation
+
+The third evaluation method that we have built into `FSaudit` is called PPS estimation. This method is a good alternative when:
+*  There are more than 20 nonzero differences in the sample; and
+*  The taintings are normally distributed.
+
+To evaluate the sample with the PPS estimation method, we have to specifically assign this method.
+```{r}
+mySamplePPS <- evaluate(mySample,
+                        av = audit_values$av,
+                        evalMeth = "pps")
+```
+A summary of the results is:
+```{r}
+mySamplePPS$evalResults$`Nonzero diff`
+mySamplePPS$evalResults$`pps estimate`
+mySamplePPS$evalResults$`Error estimate`
+mySamplePPS$evalResults$Precision
+mySamplePPS$evalResults$`Effective df`
+mySamplePPS$evalResults$`Lower bound`
+mySamplePPS$evalResults$`Upper bound`
+```
+Compare the point estimate of PPS estimation with those of `cell` and `stringer`:
+```{r}
+mySample$evalResults$Over$`Projected misstatement` - 
+  mySample$evalResults$Under$`Projected misstatement`
+mySampleStringer$evalResults$Over$`Projected misstatement` - 
+  mySampleStringer$evalResults$Under$`Projected misstatement`
+mySamplePPS$evalResults$`Error estimate`
+```
+The differences are in the precision achieved!
+```{r}
+mySample$evalResults$Over$`Precision achieved`
+mySample$evalResults$Under$`Precision achieved`
+mySampleStringer$evalResults$Over$`Precision achieved`
+mySampleStringer$evalResults$Under$`Precision achieved`
+mySamplePPS$evalResults$Precision
+```
+An additional advantage of the `pps` evaluation method is, that it combines overstatement errors and understatement errors into one evaluation.

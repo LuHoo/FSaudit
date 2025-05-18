@@ -1,0 +1,87 @@
+---
+title: "MUS - Significant item selection"
+author: "Lucas Hoogduin & Marcel Boersma"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{MUS - Significant item selection}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+## Introduction
+In this vignette we show how to eliminate significant items. The function `significant` creates two lists, one list with significant items and another list with non-significant items. A subsequent function `select` selects a sample from the non-significant items, and stores the selection in the `sample` attribute in the MUS object. The auditor tests both the `significant` and `sample` lists. The `evaluate` function is only executed over the `sample` list and extends only to the population exclusive of the significant items.
+
+### Ignoring significant items
+
+We start with a MUS experiment
+```{r}
+library(FSaudit)
+mySample <- mus_obj(cl = 0.95,
+                    bv = accounts_receivable$amount,
+                    id = accounts_receivable$invoice,
+                    pm = 23950)
+mySample <- size(mySample)
+```
+We can now show the sample size based on the entire population
+```{r}
+mySample$n
+mySample$popBv
+samplingInterval <- mySample$popBv / mySample$n
+samplingInterval
+```
+With a sample size of `r mySample$n` and a total book value of the population `r prettyNum(sum(accounts_receivable$amount), big.mark = ",")`, all items greater than `r prettyNum(samplingInterval)` are deemed individually significant.
+
+Let us first see what happens if we ignore these.
+```{r}
+mySample <- select(mySample,
+                   selMeth = "fixed",
+                   aggregates = TRUE,
+                   seed = 1)
+mySample$signItems
+```
+No elements are identified as being individually significant, because large items could be selected more than once.
+```{r}
+length(mySample$sample$bv)
+mySample$n
+```
+A sample has been selected with a size of `r mySample$n`.
+
+### Addressing significant items
+
+We therefore need to run the `significant` function first before selecting the sample. This happens automatically when we set `aggregates = FALSE`.
+
+```{r}
+mySample2 <- mus_obj(cl = 0.95,
+                     bv = accounts_receivable$amount,
+                     id = accounts_receivable$invoice,
+                     aggregates = FALSE,
+                     pm = 23950)
+mySample2 <- size(mySample2)
+mySample2$n
+mySample2$signItems
+```
+```{r}
+mySample2 <- significant(mySample2)
+mySample2$signItems
+```
+When eliminating the significant items, the sample size is recalculated.
+
+```{r}
+mySample2$n
+```
+We can then continue to select the sample.
+
+```{r}
+mySample2 <- select(mySample2,
+                    selMeth = "fixed",
+                    seed = 1)
+length(mySample2$sample$bv)
+```
+We see that the appropriate number of elements have been selected from the population.

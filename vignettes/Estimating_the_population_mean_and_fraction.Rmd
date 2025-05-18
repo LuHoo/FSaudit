@@ -1,0 +1,177 @@
+---
+title: "Estimating the population mean and fraction"
+author: "Lucas Hoogduin and Paul Touw"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Estimating the population mean and fraction}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+In this vignette we will use one single data file, so you can get familiar with estimating a mean, a fraction, and their respective confidence intervals without learning the specifics of many different data sets. The `salaries` dataset contains salary details of 2,222 employees of the imaginary town of Winesbury, and is included with the `FSaudit` package. The data file indicates for each employee the Grade, Step within the Grade, and Gross salary, as well as a unique employee ID. The field Gender is coded with a 1 for female and a 0 for male.
+
+Details of the data file can be obtained using base `R` functionality.
+
+```{r}
+library(FSaudit)
+names(salaries)
+(N <- nrow(salaries))
+```
+
+With sampling, we will try to estimate the population mean of gross salaries, and the population fractions of females and males. For the entire population, the recorded values are:
+
+```{r}
+sum(salaries$gross)
+sum(salaries$sex) / N
+```
+
+## Draw a sample
+
+Warning: as of version 3.6 of R, fundamental changes have been made in the random number generator. The default setting of the random number generator should
+normally not be changed, but for the benefit of readers who use an older
+version of R we set it to Rounding, which was the default prior to version 3.6.
+
+We start with drawing *pilot sample* of `n = 50` sampling units. We also set the `seed` to a predetermined number, so that the results can be reperformed. The `head` function helps us to see the first few lines of the sample dataframe.
+
+```{r}
+RNGkind(sample.kind = "Rounding")
+n <- 50
+set.seed(12345)
+sample1 <- salaries[sample(N, n), ]
+head(sample1)
+```
+## Point estimate of the mean
+Estimate mean gross amount.
+```{r}
+sum(sample1$gross)
+(y_bar <- mean(sample1$gross))
+```
+Estimate total monthly gross payroll.
+```{r}
+N * y_bar
+```
+## Confidence intervals around the mean
+
+### Two-sided intervals
+First, we estimate the standard deviation of the gross amount in the population by calculating the sample standard deviation.
+```{r}
+(s <- sd(sample1$gross))
+```
+Standard error
+```{r}
+(se <- s / sqrt(n))
+```
+The relevant t-value for a 95\%, two-sided interval is obtained by use of the one-sided $t$-values at 2.5\% and 97.5\%. In general, if we desire a $1 - \alpha$ confidence interval, the relevant $t$-values are $\alpha / 2$ and $1 - \alpha /2$
+```{r}
+(tval_lb <- qt(0.025, df = (n - 1)))
+(tval_ub <- qt(0.975, df = (n - 1)))
+```
+
+The lower and upper bounds on $\bar{y}$ are then
+```{r}
+(lowerBound <- y_bar + tval_lb * se)
+(upperBound <- y_bar + tval_ub * se)
+```
+Note that since the $t$-distribution is symmetrical around 0, the two $t$-values only differ in sign. We could therefore use only a single one, and just change the sign in the calculation of one of the bounds.
+```{r}
+(tval <- qt(0.975, df = (n - 1)))
+(lowerBound <- y_bar - tval * se)
+(upperBound <- y_bar + tval * se)
+```
+Extrapolating this to the entire population we then get 
+```{r}
+y_hat <- N * y_bar
+N * lowerBound
+N * upperBound
+```
+
+Precision achieved
+```{r}
+(precAch <- N * tval * se)
+```
+### One-sided intervals
+For one-sided intervals, for example to calculate the maximum gross amount at 95\% confidence, we do not split $\alpha$ into two tails, but apply it on one single tail.
+
+```{r}
+(tval2 <- qt(0.95, df = (n - 1)))
+y_bar + tval2 * se
+N * (y_bar + tval2 * se)
+```
+## Minimum sample size to estimate the mean
+
+### Infinite populations
+Required sample size for $E$ = 600,000
+```{r}
+E <- 600000
+N^2 * tval^2 * s^2 / E^2
+```
+Draw additional sampling units. You can verify that by using the same random number seed, the first 50 sampling units in `sample2` are exactly the same as in the original sample.
+```{r}
+set.seed(12345)
+sample2 <- salaries[sample(N, 131), ]
+head(sample2)
+```
+We calculate the mean of the total sample.
+```{r}
+mean(sample2$gross)
+```
+Ignoring Stein's rule (See **Audit Data Analysis**).
+```{r}
+mean(sample2$gross)
+(n2 <- nrow(sample2))
+qt(0.975, n2 - 1)
+sd(sample2$gross)
+N * qt(0.975, df = n2 - 1) * sd(sample2$gross) / sqrt(n2)
+N * mean(sample2$gross)
+```
+### Finite populations
+Solve gamma
+
+```{r}
+E2 <- 300000
+(gamma  <- E2^2 * (N - 1) / (N^2 * tval^2 * sd(sample1$gross)^2))
+(N / (1 + gamma))
+```
+
+## Confidence intervals around a fraction
+In a sample of $n = 50$ we find $k = 31$ women.
+To calculate a confidence interval for a fraction in a finite population, we  employ the hypergeometric distribution.
+
+Confidence bounds around a fraction are calculated in `R` with the `upper` and `lower` functions, that are part of the `FSaudit` package. The distribution `dist` is by default hypergeometric, alternative options are the binomial or the Poisson distributions.
+
+In all cases, the point estimate is
+```{r}
+k <- 31
+k / n * N
+```
+```{r}
+lower(k = 31, popn = 2222, n = 50, alpha = .025)
+upper(k = 31, popn = 2222, n = 50, alpha = .025)
+```
+
+Binomial approximation (answer provided as a fraction).
+```{r}
+lower(k = 31, n = 50, alpha = .025, dist = "binom")
+upper(k = 31, n = 50, alpha = .025, dist = "binom")
+```
+Binomial approximation (answer provided as a number).
+```{r}
+lower(k = 31, popn = 2222, n = 50, alpha = .025, dist = "binom")
+upper(k = 31, popn = 2222, n = 50, alpha = .025, dist = "binom")
+```
+Poisson approximation.
+```{r}
+lower(k = 31, popn = 2222, n = 50, alpha = .025, dist = "pois")
+upper(k = 31, popn = 2222, n = 50, alpha = .025, dist = "pois")
+```
+
+
+

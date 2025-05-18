@@ -1,0 +1,143 @@
+---
+title: "CVS not stratified"
+author: "Lucas Hoogduin and Paul Touw"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{CVS not stratified}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+## Introduction
+
+The `inventoryData` population is part of the `FSaudit` package. It has $N$ = 3,500 elements with a total book value of 7,360,816. ^[As of `R` version 3.6.0, there are some changes how the `sample()` command works. If you run an older version of `R`, you get the workshop results as is. If you run a newer version, you need the `RNGkind` statement to be able to reperform the sample.]
+
+```{r}
+library(FSaudit)
+RNGkind(sample.kind = "Rounding")
+(pop_N <- nrow(inventoryData))
+```
+The first few lines of the `inventoryData` data file are as follows.
+```{r}
+head(inventoryData)
+```
+
+The `FSaudit` package uses object types that gather all data relevant to a particular sampling application. There are three types: `cvs_obj`, `att_obj`, and `mus_obj`. In this vignette we introduce functionality for the Classical Variables Sampling (CVS) object type.
+
+For simple random sampling (that is, sampling without stratification), the `cvs_obj` object contains the following attributes: 
+
+* `cl`, the confidence level used. The default value is 0.95;
+* `id`, unique identifier of the sampling units;
+* `bv`, a list of the book values;
+* `av`, a list of audit values corresponding to the book values in the sample;
+* `seed`, a random number seed that allows us to replicate the sample;
+* `alloc`, a dataframe with the sample size per stratum, along with summary information of the strata. For simple random sampling there is one row with the values of the entire population;
+* `popn`, the number of items in the population;
+* `popBv`, the total book value in the population;
+* `sample`, a data frame with the unique identifiers (`id`) and book values of the selected items, along with the stratum number from which they were selected. For simple random sampling, the stratum number `strat` is 1 for all sampling units; and
+* `evalResults`, the results of the evaluation. 
+
+We start with assigning the object type to the collection of sampling information.
+
+```{r}
+mySample <- cvs_obj()
+mySample$n
+```
+
+The `mySample` object is now ready to store all the information for the sample. Currently, it is completely empty apart from those attributes that have a default value, and we will fill it gradually through the phases of our sampling investigation. We first add information on the population and the required sample size. To be able to reperform the results, we make sure that we have exactly the same sample as used in the text. This is achieved by assigning a specific value to the `seed` attribute.
+
+```{r}
+mySample <- cvs_obj(n = 400, 
+                    bv = inventoryData$bv, 
+                    id = inventoryData$item,
+                    seed = 12345)
+mySample$n
+```
+We have now made room for a sample of `n = 400`. The 3,500 bookvalues and the corresponding identifiers are loaded into the `cvs_obj` object.
+
+We then select the requested 400 items from the population.
+```{r}
+mySample <-  select(mySample)
+```
+The first six selected sampling units can be obtained with the `head()` function.
+```{r}
+head(mySample$sample)
+```
+As an auditor, you should now test the selected items, obtaining their true value (the *audit values*).
+
+For the purpose of the workshop, we help you audit the selected sampling units by looking up the item numbers in a list with audit values.
+
+```{r}
+audit_values <- 
+  inventoryData[match(mySample$sample$item, inventoryData$item), "av"]
+```
+The list of audit values, which is in exactly the same order as the original sampling units and their book values, is then provided to the `cvs` object for evaluation.
+```{r}
+mySample <- evaluate(mySample, av = audit_values)
+```
+The results of the evaluation are stored in the `evalResults` attribute.
+
+### Summary info
+A summary table with the results for all estimation methods is given in the Estimates table.
+```{r}
+mySample$evalResults$Estimates
+```
+
+
+### The MPU estimator
+The *Mean-per-Unit* (MPU) or direct estimator only uses information from the audit values.
+```{r}
+mySample$evalResults$`Mean per unit estimation`
+mySample$evalResults$`Most likely total audited amount mean`
+mySample$evalResults$`Most likely total error mean`
+mySample$evalResults$`Achieved precision mean`
+```
+
+### The regression estimator
+The *regression* estimator uses the correlation between book and audit values to reduce the variance.
+```{r}
+mySample$evalResults$`Regression estimation`
+mySample$evalResults$`Most likely total audited amount regression`
+mySample$evalResults$`Most likely total error regression`
+mySample$evalResults$`Achieved precision regression`
+```
+### The difference estimator
+The *difference* estimator is a special case of the regression estimator, where the *slope* parameter is set to 1.
+```{r}
+mySample$evalResults$`Difference estimation`
+mySample$evalResults$`Most likely total audited amount difference`
+mySample$evalResults$`Most likely total error difference`
+mySample$evalResults$`Achieved precision difference`
+```
+### The ratio estimator
+The *ratio* estimator is a weighted regression estimate with the intercept coefficient set to 0.
+```{r}
+mySample$evalResults$`Ratio estimation`
+mySample$evalResults$`Most likely total audited amount ratio`
+mySample$evalResults$`Most likely total error ratio`
+mySample$evalResults$`Achieved precision ratio`
+```
+
+## Estimating the required sample size
+In the previous example, we required a sample of exactly 400 sampling units. We can also estimate the required sample size for a given desired precision. For example, the precision achieved for the MPU estimator was 684,513. We would like to improve this to below 400,000.
+```{r}
+secondSample <- cvs_obj(cl = 0.95,
+                        desPrec = 400000,
+                        bv = inventoryData$bv,
+                        id = inventoryData$item,seed = 12345)
+```
+
+Get the sample size:
+```{r}
+secondSample <- size(secondSample)
+secondSample$n
+```
+
+

@@ -1,0 +1,119 @@
+---
+title: "Attribute sampling"
+author: "Lucas Hoogduin & Marcel Boersma"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Attribute sampling}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+**Attribute sampling** is concerned with the proportion of a population that either has or does not have a particular attribute. For example, either the payment has been authorized or it has not; either the debt is overdue or it is not.
+
+The relevant distribution for attribute sampling is the hypergeometric. When the sample size is low compared to the population size, we may use the binomial or Poisson as an approximation.
+
+In this example we assume we test a population of 1200 elements for the existence of an error rate of 5%. We test with a significance level of 10%, and we allow no deviations in the sample.
+
+
+### Sample size calculation with a critical region
+We first load the `FSaudit` library, and then create an `att` object with the relevant parameters.
+
+```{r, echo=TRUE}
+library(FSaudit)
+mySample <- att_obj(alpha = .1,
+                    popdev = 60,
+                    popn = 1200,
+                    c = 0)
+```
+To calculate the required sample size, we apply the function `size` on the object. The resulting sampling size $n$ is then stored within the object. We try different values for the critical number of deviations.
+
+```{r}
+mySample <- size(mySample)
+mySample$n
+```
+To allow one or two deviations in the sample, we increase the critical number `c` attribute.
+
+```{r}
+mySample <- size(mySample, c = 1)
+mySample$n
+
+mySample <- size(mySample, c = 2)
+mySample$n
+```
+### Sample size calculation with approximating distributions
+The examples above show how sample sizes can be calculated for various critical regions. The default distribution to be used is the hypergeometric, but calculations can also be performed with the approximating binomial and Poisson distributions. In that case, the distribution needs to be specifically entered as an argument, the tolerable deviation rate `tdr = 60 / 1200 = 0.05` is entered as a fraction instead of the integer number of population deviations, and the function does not require a value for `popn`.
+
+```{r}
+myBinomialSample <- att_obj(alpha = .1,
+                            tdr = .05,
+                            dist = "binom",
+                            c = 2)
+myBinomialSample <- size(myBinomialSample)
+myBinomialSample$n
+```
+```{r}
+myPoissonSample <- att_obj(alpha = .1,
+                           tdr = .05,
+                           dist = "pois",
+                           c = 2)
+myPoissonSample <- size(myPoissonSample)
+myPoissonSample$n
+```
+### Sample size calculation with expected error
+Sometimes it is not easy to tell in advance which critical region should be chosen. The critical region depends on the expected error (rate) in the population. The `size` function also allows the expected error to be assigned, instead of the critical region. Of course, the expected error should be smaller than `popdev`, or the expected error rate should be smaller than the tolerable deviation rate `tdr`.
+```{r}
+mySample2 <- att_obj(alpha = .1,
+                    popdev = 60,
+                    popn = 1200,
+                    ee = 10)
+mySample2 <- size(mySample2)
+mySample2$n
+mySample2$c
+```
+From this example we learn that for an expected error in the population, the suggested sample size is `r mySample2$n` (`mySample2$n`), and with that sample size up to `r mySample2$c` (`mySample2$c`) deviation can be tolerated to rejected the null hypothesis.
+
+### Evaluation
+Attribute samples are evaluated by comparing the number of deviations to the critical number, or by using the standard `R` functions to calculate a $p$-value. For example, in the first example we calculated a sample size of 45. If this sample reveals one error, then this number is greater than the critical number, and the null hypothesis cannot be rejected. Evaluation with the $p$-value is as follows.
+
+```{r}
+phyper(q = 1, m = 60, n = 1140, k = 45)
+```
+Note that `q` denotes the number of deviations found, `m` is the number of deviations in the population, `n` is the number of correct elements in the population, and `k` is the sample size. The total number of elements in the population is `n + m = 1200`.
+
+In the example, since the $p$-value of `r phyper(q = 1, m = 60, n = 1140, k = 45)` is greater than the significance level `alpha`, the null hypothesis cannot be rejected.
+
+
+The Type II error at a 2% population error rate is $P(k ≥ 1, n = 45, N = 1200, M = 0.02 * 1200 = 24)$ , and is calculated as follows in `R`:
+```{r}
+1 - phyper(0, m = 24, n = 1176, k = 45)
+phyper(0, m = 24, n = 1176, k = 45, lower.tail = FALSE)
+```
+Note that we changed the argument `lower.tail` from its default value `TRUE` to `FALSE`.
+
+Similarly, when we design a plan that tolerates two errors and we find two, the $p$-value $P(k ≤ 2, n = 102, N = 1200, M = 60)$ equals:
+```{r}
+phyper(q = 2, m = 60, n = 1140, k = 102)
+```
+
+To carry out the test by means of a prediction interval, the following function calculates the upper limit $M_U$ on the number of errors in the population. Here we set up a sample with tolerance for finding up to 2 deviations (critical number = 2), resulting in a sample size of 102, and find `k = 0, 1, 2 or 3` deviations in the sample.
+```{r}
+upper(popn = 1200, n = 102, k = 0, alpha = 0.10)
+upper(popn = 1200, n = 102, k = 1, alpha = 0.10)
+upper(popn = 1200, n = 102, k = 2, alpha = 0.10)
+upper(popn = 1200, n = 102, k = 3, alpha = 0.10)
+```
+The percentage error upper bounds $p_U$ are therefore:
+```{r}
+upper(popn = 1200, n = 102, k = 0, alpha = 0.10) / 1200
+upper(popn = 1200, n = 102, k = 1, alpha = 0.10) / 1200
+upper(popn = 1200, n = 102, k = 2, alpha = 0.10) / 1200
+upper(popn = 1200, n = 102, k = 3, alpha = 0.10) / 1200
+```
+We see that for `k = 0, 1, 2` the upper bound is less than the `tdr = 0.05`, and can in these cases conclude with 95\% confidence that the population does not contain a material deviation rate.

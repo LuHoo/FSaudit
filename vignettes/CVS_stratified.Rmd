@@ -1,0 +1,108 @@
+---
+title: "CVS stratified"
+author: "Lucas Hoogduin and Paul Touw"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{CVS stratified}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Introduction
+
+We want to estimate the total population value of a population of inventories. The sampling frame `inventoryData` is part of the `FSaudit` package. The data of our sampling procedure are stored in a `cvs_obj` CVS object.
+
+```{r}
+RNGkind(sample.kind = "Rounding")
+library(FSaudit)
+myStrat <- cvs_obj(bv = inventoryData$bv, id = inventoryData$item)
+```
+We first show how a population is stratified into three strata with equal recorded values boundaries.
+```{r}
+myStrat <- stratify(myStrat, stratMeth = "equal", strata = 3)
+myStrat$stratSumm
+```
+We can also use the `cumulative square root of the sum of the squares` method.
+```{r}
+
+myStrat <- stratify(myStrat, stratMeth = "cumulative", strata = 3, classes = 10)
+```
+An overview of the details of the classes used is given by
+```{r}
+myStrat$classSumm
+```
+The resulting stratification is
+```{r}
+myStrat$stratSumm
+myStrat$alloc
+```
+## Sample size calculation
+We continue with the `cumulative` stratification method. We can use a preassigned sample size, for instance when the auditor first executes a *pilot sample* to get a feel of the standard deviation of the audit values. For example, if the auditor first wants to test 400 sampling units, we can preassign the sample size attribute $n$ in the `cvs_obj`.
+
+```{r}
+myStrat <- stratify(myStrat, stratMeth = "cumulative", strata = 3, classes = 10, n = 400)
+myStrat$alloc
+```
+The preassigned sample size is allocated to the strata, using Neyman allocation.
+
+On the other hand, the auditor can also request `FSaudit` to calculate the required sample size for a given desired precision.
+
+```{r}
+myStrat <- size(myStrat, desPrec = 200000)
+myStrat$n
+myStrat$alloc
+```
+The required sample size is 584. Due to rounding in the allocation process, the sum of the stratum sample sizes $n_h$  is slightly lower.
+```{r}
+sum(myStrat$alloc$nh)
+```
+### Selection of sampling units
+
+```{r}
+myStrat <- select(myStrat, seed = 12345)
+head(myStrat$sample)
+```
+
+
+### Evaluation
+
+We obtain the true values of the sampling units.
+
+```{r}
+audit_values <- inventoryData[match(myStrat$sample$item,
+                                   inventoryData$item),
+                             c("item", "av")]
+```
+
+
+And then evaluate the sample.
+```{r}
+myStrat <- evaluate(myStrat, av = audit_values$av)
+```
+
+
+General results
+
+```{r}
+myStrat$evalResults$Estimates
+
+```
+We see that for the MPU estimator, desired precision of 200,000 is not achieved. It is for the other estimators.
+
+Details of the individual estimators are also stored in the `cvs_obj`, for example for the MPU estimator:
+```{r}
+myStrat$evalResults$`Mean per unit estimation`
+```
+Or for the regression estimator:
+```{r}
+myStrat$evalResults$`Regression estimation`
+```
+

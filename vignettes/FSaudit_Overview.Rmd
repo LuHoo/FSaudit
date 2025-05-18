@@ -1,0 +1,63 @@
+---
+title: "FSaudit Overview"
+author: "Lucas Hoogduin & Marcel Boersma "
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{FSaudit Overview}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+---
+
+
+
+## What is FSaudit?
+
+The `FSaudit` package contains various sampling strategies described in the textbook Audit Data Science.
+
+The package contains strategies for:
+
+- Attribute Sampling
+- Monetary Unit Sampling (MUS)
+- Classical Variables Sampling(CVS)
+
+It includes sampling routines for sample size calculation, sample selection, and sample evaluation.
+
+## Why FSaudit?
+
+The `FSaudit` package is an alternative for commerical software packages specifically geared toward auditors. `FSaudit` contains all the sampling functionality required by auditors plus many more add-on functions with strong theoretical support taken from other professional literature. 
+
+In addition, the availability of this sampling functionality in an `R` package allows us to run simulations, which is not easily doable in commercial software. This greatly enhances the experience in a classroom setting.
+
+## Attribute Sampling
+
+Attribute sampling is concerned with the proportion of a population that either has or does not have a particular attribute. The evaluation is in the classical form of a hypothesis test, where we compare the number of errors or deviations found to the critical region.
+
+## Monetary Unit Sampling
+
+In Monetary Unit Sampling (MUS),
+
+| a. The elements are drawn from the data frame with probabilities proportional to size;
+| b. The conclusion is sought on the total value of non-conforming elements or misstatements;
+| c. The sample is evaluated with the Stringer bounds method or the Cell evaluation method, which are the suggested methods when the number of errors in the sample is small. Alternatively, when the number of errors is large, the sample can be evaluated with 'PPS estimation'.
+
+## Classical Variables Sampling
+
+Classical Variables sampling (CVS), is a simple or stratified random sampling method used to estimate the total amount of misstatement. There are various stratification methods available (in which the sample selection is random within a stratum). The samples can be evaluated using different estimation techniques:
+
+| a. Difference estimation
+| b. Ratio estimation
+| c. Regression estimation
+| d. Mean-per-Unit estimation
+
+\vspace{24pt}
+
+`FSaudit` facilitates stratified and unstratified sampling. There are two stratification methods built-in, 'equal recorded values' and 'cumulative square root of the sums'. For these stratification methods, we recommend proportional allocation and Neyman allocation, respectively.

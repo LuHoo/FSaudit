@@ -1,0 +1,76 @@
+---
+title: "MUS - sample size"
+author: "Lucas Hoogduin & Marcel Boersma"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{MUS - sample size}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Introduction
+
+MUS sample sizes are typically calculated using the (default) hypergeometric distribution. The `FSaudit` package also supports calculations with the approximating binomial and Poisson distributions.
+
+We first load `FSaudit` as follows,
+
+```{r, echo=TRUE}
+library(FSaudit)
+```
+We then set up a sample from the Accounts Receivable population, that is included in the `FSaudit` package.
+```{r}
+mySample <- mus_obj(bv =  accounts_receivable$amount,
+                    id = accounts_receivable$invoice,
+                    pm = 450000,
+                    ee = 100000,
+                    evalMeth = "stringer")
+```
+
+
+### Hypergeometric
+
+As the hypergeometric distribution is the default distribution, there is no need to specify it when calculating the sample size.
+
+```{r}
+mySample <- size(mySample)
+mySample$n
+```
+
+### Binomial
+
+The binomial distribution is a good approximation if the sample size is less than 10% of the population size.
+
+The population size is given by the number of book values.
+
+```{r}
+populationSize <- length(accounts_receivable$amount)
+populationSize
+```
+The sample size calculated with the hypergeometric distribution is `r mySample$n`, which is less than 10% of the population size of `r mySample$popn`. The calculation with the binomial should therefore be close.
+```{r, echo = TRUE}
+mySampleBinomial <- size(mySample, dist = "binom")
+mySampleBinomial$n
+```
+### Poisson
+
+The Poisson approximation used to be very useful in times when samples were planned manually. The approximation is reasonable for sample sizes $n \geq 20$ and population error rates $\pi < 0.10$.
+The first condition is true, the second is false.
+```{r}
+populationErrorRate <- mySample$pm / mySample$popBv
+populationErrorRate
+```
+Let us see if this has an effect on the sample size calculated.
+
+```{r, echo = TRUE}
+mySamplePoisson <- size(mySample, dist = "pois")
+mySamplePoisson$n
+```
+We see that the Poisson approximation in this case is too conservative, leading to a sample size of `r mySamplePoisson$n` instead of the exact (hypergeometric) calculation of `r mySample$n`.

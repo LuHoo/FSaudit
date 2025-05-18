@@ -1,0 +1,33 @@
+---
+title: "Working with objects"
+author: "Lucas Hoogduin & Marcel Boersma "
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Working with objects}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+## Introduction
+In this vignette we introduce the experiment objects. In the `FSaudit` package we have built in support for various sampling strategies. A sampling experiment is carried out in several stages, from sample size computation, selection of the sample through to sample evaluation. We keep track of the *state* of the experiment in the experiment object. 
+
+There are objects for Monetary Unit Sampling (`mus_obj`), Classical Variables Sampling (`cvs_obj`) and Attribute Sampling (`att_obj`). Each of the objects contains a list with the experiment attributes. These attributes obtain specific values as the sampling experiment proceeds, sometimes by user input, in other cases as the result of the procedures. For example, in an MUS experiment we can compute the sample size which is stored in the `n` attribute in the `mus_obj` list. We can use this computed `n` value later on when we select `n` items from the population. Alternatively, the user can specifically assign a value to the sample size attribute, instead of having it calculated by the `size` function.
+
+The experiments are carried out in a specific order. To execute these steps, we created the following general functions:
+
+* `*_obj`: creates an experiment object to keep track of the status of the experiment;
+* `stratify`: stratifies the population (only applies to CVS);
+* `size`: computes the sample size for the experiment;
+* `significant`: selects individually significant items (only applies to MUS);
+* `select`: selects the `n` items from the population;
+* `eval`: evaluates the experiment with the obtained audit values; and
+* `extend`: extends the experiment.
+
+Attribute sampling experiments only consist of the first two steps.

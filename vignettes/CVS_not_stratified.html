@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Lucas Hoogduin and Paul Touw" />
+
+<meta name="date" content="2022-12-01" />
+
+<title>CVS not stratified</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">CVS not stratified</h1>
+<h4 class="author">Lucas Hoogduin and Paul Touw</h4>
+<h4 class="date">2022-12-01</h4>
+
+
+
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>The <code>inventoryData</code> population is part of the
+<code>FSaudit</code> package. It has <span class="math inline">\(N\)</span> = 3,500 elements with a total book
+value of 7,360,816. <a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a></p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(FSaudit)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">RNGkind</span>(<span class="at">sample.kind =</span> <span class="st">&quot;Rounding&quot;</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; Warning in RNGkind(sample.kind = &quot;Rounding&quot;): non-uniform &#39;Rounding&#39; sampler</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; used</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>(pop_N <span class="ot">&lt;-</span> <span class="fu">nrow</span>(inventoryData))</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 3500</span></span></code></pre></div>
+<p>The first few lines of the <code>inventoryData</code> data file are
+as follows.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(inventoryData)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   item      bv      av  av_mus  av_reg  av_dif  av_rat</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1    1  120.60  109.92  120.60  146.42  110.59  443.15</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2    2 2600.10 2219.24 2600.10 2458.29 2881.49 2762.50</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3    3 4899.90 6398.96    0.00 4533.63 4652.26 5035.45</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 4    4 1660.49 1676.29 1660.49 1935.84 1493.75 1412.33</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 5    5 5398.28 4511.42 5398.28 5260.26 5464.66 4984.18</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 6    6 1063.70  953.08 1063.70 1011.98 1163.51 1079.67</span></span></code></pre></div>
+<p>The <code>FSaudit</code> package uses object types that gather all
+data relevant to a particular sampling application. There are three
+types: <code>cvs_obj</code>, <code>att_obj</code>, and
+<code>mus_obj</code>. In this vignette we introduce functionality for
+the Classical Variables Sampling (CVS) object type.</p>
+<p>For simple random sampling (that is, sampling without
+stratification), the <code>cvs_obj</code> object contains the following
+attributes:</p>
+<ul>
+<li><code>cl</code>, the confidence level used. The default value is
+0.95;</li>
+<li><code>id</code>, unique identifier of the sampling units;</li>
+<li><code>bv</code>, a list of the book values;</li>
+<li><code>av</code>, a list of audit values corresponding to the book
+values in the sample;</li>
+<li><code>seed</code>, a random number seed that allows us to replicate
+the sample;</li>
+<li><code>alloc</code>, a dataframe with the sample size per stratum,
+along with summary information of the strata. For simple random sampling
+there is one row with the values of the entire population;</li>
+<li><code>popn</code>, the number of items in the population;</li>
+<li><code>popBv</code>, the total book value in the population;</li>
+<li><code>sample</code>, a data frame with the unique identifiers
+(<code>id</code>) and book values of the selected items, along with the
+stratum number from which they were selected. For simple random
+sampling, the stratum number <code>strat</code> is 1 for all sampling
+units; and</li>
+<li><code>evalResults</code>, the results of the evaluation.</li>
+</ul>
+<p>We start with assigning the object type to the collection of sampling
+information.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>mySample <span class="ot">&lt;-</span> <span class="fu">cvs_obj</span>()</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>mySample<span class="sc">$</span>n</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; NULL</span></span></code></pre></div>
+<p>The <code>mySample</code> object is now ready to store all the
+information for the sample. Currently, it is completely empty apart from
+those attributes that have a default value, and we will fill it
+gradually through the phases of our sampling investigation. We first add
+information on the population and the required sample size. To be able
+to reperform the results, we make sure that we have exactly the same
+sample as used in the text. This is achieved by assigning a specific
+value to the <code>seed</code> attribute.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>mySample <span class="ot">&lt;-</span> <span class="fu">cvs_obj</span>(<span class="at">n =</span> <span class="dv">400</span>, </span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>                    <span class="at">bv =</span> inventoryData<span class="sc">$</span>bv, </span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>                    <span class="at">id =</span> inventoryData<span class="sc">$</span>item,</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>                    <span class="at">seed =</span> <span class="dv">12345</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>mySample<span class="sc">$</span>n</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 400</span></span></code></pre></div>
+<p>We have now made room for a sample of <code>n = 400</code>. The 3,500
+bookvalues and the corresponding identifiers are loaded into the
+<code>cvs_obj</code> object.</p>
+<p>We then select the requested 400 items from the population.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>mySample <span class="ot">&lt;-</span>  <span class="fu">select</span>(mySample)</span></code></pre></div>
+<p>The first six selected sampling units can be obtained with the
+<code>head()</code> function.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(mySample<span class="sc">$</span>sample)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;      item      bv strat</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2524 2524  728.40     1</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3065 3065 2199.37     1</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 2662 2662 1452.48     1</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 3099 3099   68.61     1</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1596 1596 5292.84     1</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 582   582  910.03     1</span></span></code></pre></div>
+<p>As an auditor, you should now test the selected items, obtaining
+their true value (the <em>audit values</em>).</p>
+<p>For the purpose of the workshop, we help you audit the selected
+sampling units by looking up the item numbers in a list with audit
+values.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>audit_values <span class="ot">&lt;-</span> </span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  inventoryData[<span class="fu">match</span>(mySample<span class="sc">$</span>sample<span class="sc">$</span>item, inventoryData<span class="sc">$</span>item), <span class="st">&quot;av&quot;</span>]</span></code></pre></div>
+<p>The list of audit values, which is in exactly the same order as the
+original sampling units and their book values, is then provided to the
+<code>cvs</code> object for evaluation.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>mySample <span class="ot">&lt;-</span> <span class="fu">evaluate</span>(mySample, <span class="at">av =</span> audit_values)</span></code></pre></div>
+<p>The results of the evaluation are stored in the
+<code>evalResults</code> attribute.</p>
+<div id="summary-info" class="section level3">
+<h3>Summary info</h3>
+<p>A summary table with the results for all estimation methods is given
+in the Estimates table.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>mySample<span class="sc">$</span>evalResults<span class="sc">$</span>Estimates</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;                    mpu        diff       ratio       regr</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; audit value  7561859.2 7369663.212 7369438.084 7373882.49</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; misstatement -201043.2   -8847.212   -8622.084  -13066.49</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; precision     684415.2  188466.479  188529.895  188122.56</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; lower bound  6877444.0 7181196.733 7180908.189 7185759.93</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; upper bound  8246274.4 7558129.692 7557967.979 7562005.05</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; effective df     399.0     399.000     399.000     399.00</span></span></code></pre></div>
+</div>
+<div id="the-mpu-estimator" class="section level3">
+<h3>The MPU estimator</h3>
+<p>The <em>Mean-per-Unit</em> (MPU) or direct estimator only uses
+information from the audit values.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>mySample<span class="sc">$</span>evalResults<span class="sc">$</span><span class="st">`</span><span class="at">Mean per unit estimation</span><span class="st">`</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   Stratum Size #_Errors Mean_error_value Est_regressor_var</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1       1  400      400         2.527775           4468220</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>mySample<span class="sc">$</span>evalResults<span class="sc">$</span><span class="st">`</span><span class="at">Most likely total audited amount mean</span><span class="st">`</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; NULL</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>mySample<span class="sc">$</span>evalResults<span class="sc">$</span><span class="st">`</span><span class="at">Most likely total error mean</span><span class="st">`</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; NULL</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>mySample<span class="sc">$</span>evalResults<span class="sc">$</span><span class="st">`</span><span class="at">Achieved precision mean</span><span class="st">`</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; NULL</span></span></code></pre></div>
+</div>
+<div id="the-regression-estimator" class="section level3">
+<h3>The regression estimator</h3>
+<p>The <em>regression</em> estimator uses the correlation between book
+and audit values to reduce the variance.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>mySample<span class="sc">$</span>evalResults<span class="sc">$</span><span class="st">`</span><span class="at">Regression estimation</span><span class="st">`</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   Stratum Size #_Errors Mean_error_value Est_regressor_var</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1       1  400      400         2.527775          337580.3</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>mySample<span class="sc">$</span>evalResults<span class="sc">$</span><span class="st">`</span><span class="at">Most likely total audited amount regression</span><span class="st">`</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 7373882</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>mySample<span class="sc">$</span>evalResults<span class="sc">$</span><span class="st">`</span><span class="at">Most likely total error regression</span><span class="st">`</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -13066.49</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>mySample<span class="sc">$</span>evalResults<span class="sc">$</span><span class="st">`</span><span class="at">Achieved precision regression</span><span class="st">`</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 188122.6</span></span></code></pre></div>
+</div>
+<div id="the-difference-estimator" class="section level3">
+<h3>The difference estimator</h3>
+<p>The <em>difference</em> estimator is a special case of the regression
+estimator, where the <em>slope</em> parameter is set to 1.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>mySample<span class="sc">$</span>evalResults<span class="sc">$</span><span class="st">`</span><span class="at">Difference estimation</span><span class="st">`</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   Stratum Size #_Errors Mean_error_value Est_regressor_var</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1       1  400      400         2.527775          338815.7</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>mySample<span class="sc">$</span>evalResults<span class="sc">$</span><span class="st">`</span><span class="at">Most likely total audited amount difference</span><span class="st">`</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 7369663</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>mySample<span class="sc">$</span>evalResults<span class="sc">$</span><span class="st">`</span><span class="at">Most likely total error difference</span><span class="st">`</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -8847.212</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>mySample<span class="sc">$</span>evalResults<span class="sc">$</span><span class="st">`</span><span class="at">Achieved precision difference</span><span class="st">`</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 188466.5</span></span></code></pre></div>
+</div>
+<div id="the-ratio-estimator" class="section level3">
+<h3>The ratio estimator</h3>
+<p>The <em>ratio</em> estimator is a weighted regression estimate with
+the intercept coefficient set to 0.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>mySample<span class="sc">$</span>evalResults<span class="sc">$</span><span class="st">`</span><span class="at">Ratio estimation</span><span class="st">`</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt;   Stratum Size #_Errors Mean_error_value Est_regressor_var</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; 1       1  400      400         2.527775          339043.8</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>mySample<span class="sc">$</span>evalResults<span class="sc">$</span><span class="st">`</span><span class="at">Most likely total audited amount ratio</span><span class="st">`</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 7369438</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>mySample<span class="sc">$</span>evalResults<span class="sc">$</span><span class="st">`</span><span class="at">Most likely total error ratio</span><span class="st">`</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] -8622.084</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>mySample<span class="sc">$</span>evalResults<span class="sc">$</span><span class="st">`</span><span class="at">Achieved precision ratio</span><span class="st">`</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 188529.9</span></span></code></pre></div>
+</div>
+</div>
+<div id="estimating-the-required-sample-size" class="section level2">
+<h2>Estimating the required sample size</h2>
+<p>In the previous example, we required a sample of exactly 400 sampling
+units. We can also estimate the required sample size for a given desired
+precision. For example, the precision achieved for the MPU estimator was
+684,513. We would like to improve this to below 400,000.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>secondSample <span class="ot">&lt;-</span> <span class="fu">cvs_obj</span>(<span class="at">cl =</span> <span class="fl">0.95</span>,</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>                        <span class="at">desPrec =</span> <span class="dv">400000</span>,</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>                        <span class="at">bv =</span> inventoryData<span class="sc">$</span>bv,</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>                        <span class="at">id =</span> inventoryData<span class="sc">$</span>item,<span class="at">seed =</span> <span class="dv">12345</span>)</span></code></pre></div>
+<p>Get the sample size:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>secondSample <span class="ot">&lt;-</span> <span class="fu">size</span>(secondSample)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>secondSample<span class="sc">$</span>n</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] 936</span></span></code></pre></div>
+</div>
+<div class="footnotes footnotes-end-of-document">
+<hr />
+<ol>
+<li id="fn1"><p>As of <code>R</code> version 3.6.0, there are some
+changes how the <code>sample()</code> command works. If you run an older
+version of <code>R</code>, you get the workshop results as is. If you
+run a newer version, you need the <code>RNGkind</code> statement to be
+able to reperform the sample.<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
+</ol>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

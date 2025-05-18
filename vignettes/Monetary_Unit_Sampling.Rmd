@@ -1,0 +1,148 @@
+---
+title: "Monetary Unit Sampling"
+author: "Lucas Hoogduin & Marcel Boersma"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Monetary Unit Sampling}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Sample planning
+
+If we have a population available, we can submit the field to be sampled from, and indicate which unique key to use to identify sampling units. In this example, we assume that we have an Accounts Receivable file, where we sample from the `amount` field and have an unique ID in the item field.
+
+We start with setting up a new `mus` object.
+
+```{r}
+library(FSaudit)
+ar <- mus_obj(bv = accounts_receivable$amount,
+              id = accounts_receivable$invoice)
+ar$popn
+ar$popBv
+```
+To calculate the minimum required sample size, we run the `size` function on the `mus` object. It calculates the sample size $n$ and adds the result to the object. We use performance materiality of 450,000 and an expected error of 100,000 in this example.
+```{r}
+ar <- size(ar, 
+           pm = 450000,
+           ee = 100000)
+ar$n
+```
+Sample size calculations can also be made with approximating distributions, like the Poisson or the binomial.
+```{r}
+alternative <- size(ar, dist = "pois")
+alternative$n
+```
+Detailed information on sample size calculation is provided in the vignette 'MUS_sample_sizes'.
+
+Various selection methods with a probability proportional to size are implemented in the FSaudit package with the `selection` function. Available methods include `cell`, `fixed`, `modified.sieve`,`random`, `randomized.fixed` (the default), and `sieve`.
+
+in this example we use the randomized fixed interval selection method. Note that a random number seed can be chosen and submitted to the function. If the `seed` is left blank, `FSaudit` will assign and use a random seed number.
+
+```{r}
+RNGkind(sample.kind = "Rounding")
+ar <- select(ar,
+             selMeth = "randomized.fixed",
+             seed = 345)
+```
+Detailed information on sample selection is provided in the vignette 'MUS_selection_methods'.
+
+Let us have a look at the top selected items
+```{r}
+head(ar$sample)
+```
+Before we can evaluate the sample, we first must provide the audit values. These should be provided in a list that is in the exact same order as the list of sample book values. In this example, we assume that three sampling units are in error: id 201702532 has an audit value of 4438.82, id 201720040 has an audit value of 0.00, and id 201724407 has an audit value of 5531.38. These items have row numbers 16, 52, and 124, respectively.
+We first create an array of audit values, filled with all the book values.
+```{r}
+av <- ar$sample$bv
+```
+We then change the audit values of the three identified errors:
+```{r}
+av[16]
+av[52]
+av[124]
+av[16] <- 4438.82
+av[52] <- 0.00
+av[124] <- 5531.38
+av[16]
+av[52]
+av[124]
+```
+
+We then evaluate the sample by using the `eval` function. Monetary unit sample evaluation is separate fro overstatements and understatements.
+```{r}
+ar <- evaluate(ar,
+               av = av)
+```
+
+The evaluation of the overstatements are:
+```{r}
+ar$evalResults$Over$`Projected misstatement`
+ar$evalResults$Over$`Sample size used`
+ar$evalResults$Over$`Nonzero differences`
+ar$evalResults$Over$`Cell width`
+ar$evalResults$Over$`Precision achieved`
+ar$evalResults$Over$`Upper confidence bound`
+```
+A similar table is available for understatements, here presented in a more concise way:
+```{r}
+ar$evalResults$Under
+```
+A full table of precision calculations is given by:
+```{r}
+ar$evalResults$Over$`Precision calculation`
+```
+Details of the sampling units with errors can be obtained with:
+```{r}
+(errors <- which(ar$sample$bv != ar$av))
+```
+The vector `errors` can be used to look up the `id`, `bv` and `av`.
+```{r}
+misstatements <- data.frame(id = ar$sample$item[errors],
+bv = ar$sample$bv[errors],
+av = ar$av[errors])
+misstatements$diff <- misstatements$bv - misstatements$av
+misstatements$taint <- misstatements$diff / misstatements$bv
+misstatements
+```
+The evaluations above were carried out with the default `cell` evaluation method. Samples can also be evaluated with the Stringer bound method.
+```{r}
+ar <- evaluate(ar, 
+               av = av,
+               evalMeth = "stringer")
+```
+The new results are:
+```{r}
+ar$evalResults$Over$`Projected misstatement`
+ar$evalResults$Over$`Sample size used`
+ar$evalResults$Over$`Nonzero differences`
+ar$evalResults$Over$`Sampling interval`
+ar$evalResults$Over$`Precision achieved`
+ar$evalResults$Over$`Upper confidence bound`
+```
+A full table of precision calculations is given by:
+```{r}
+ar$evalResults$Over$`Precision calculation`
+```
+A third evaluation method available is `pps`, for PPS estimation.
+```{r}
+ar <- evaluate(ar,
+               av = av,
+               evalMeth = "pps")
+ar$evalResults$'Nonzero diff'
+ar$evalResults$'pps estimate'
+ar$evalResults$'Error estimate'
+ar$evalResults$Precision
+ar$evalResults$'Effective df'
+ar$evalResults$'Lower bound'
+ar$evalResults$'Upper bound'
+```
+For a more detailed discussion of the three evaluation methods, see *Audit Data Analysis*.

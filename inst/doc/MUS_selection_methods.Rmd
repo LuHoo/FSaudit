@@ -1,0 +1,132 @@
+---
+title: "MUS - selection methods"
+author: "Lucas Hoogduin & Marcel Boersma"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{MUS - selection methods}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Introduction
+There are many selection methods that have probabilities for inclusion proportional to the size of the elements. The following are available in `FSaudit`:
+
+* random
+* fixed
+* randomized.fixed (Default)
+* cell
+* sieve
+* modified.sieve
+
+We first load `FSaudit` as follows,
+
+```{r, echo=TRUE}
+library(FSaudit)
+```
+We sample from a population of accounts receivable, 
+
+```{r}
+mySample <- mus_obj(cl = 0.95,
+                    bv = accounts_receivable$amount,
+                    id = accounts_receivable$invoice,
+                    pm = 23950,
+                    seed = 3)
+mySample <- size(mySample)
+mySample$n
+```
+With a sample size of `r mySample$n`, what would be the individually significant items?
+
+```{r}
+sum(accounts_receivable$amount)
+samplingInterval <- sum(accounts_receivable$amount) / mySample$n
+samplingInterval
+```
+We see that all elements greater than `r round(samplingInterval, 2)` should have an inclusion probability of 1. How many of these does the population contain?
+
+```{r}
+significants <- accounts_receivable[accounts_receivable$amount > samplingInterval, 1:3]
+significants[order(-significants$amount),]
+```
+There are 26 individually significant items. We ignore them for now, assuming that elements in the population could be aggregates. The selected monetary unit should in this case be drilled down to the lower level detail that contains it.
+
+### Random Selection
+
+A random sample of monetary units is selected, and these are traced to the elements that contain them. Let us have a look at the ten largest book values selected.
+
+```{r}
+mySample <- select(mySample,
+                   selMeth = "random",
+                   aggregates = TRUE)
+head(mySample$sample[order(-mySample$sample$bv),], 10)
+```
+We observe that item 201734940 has two hits, and item 201723585 three. We also see that the largest individually significant item, invoice 201719763 with a book value of 12049.70, is not selected.
+
+### Fixed Interval Selection
+
+After a random start, we take fixed intervals of monetary units to select elements.
+
+```{r}
+mySample <- select(mySample,
+                   selMeth = "fixed",
+                   aggregates = TRUE)
+head(mySample$sample[order(-mySample$sample$bv),], 10)
+```
+The ten largest selected book values show us, that all significant items have at least been hit once. The interval between two hits (that can be observed in items that have been hit twice) is equal to the sampling interval.
+
+### Randomized Fixed Selection
+
+This method is similar to the previous, with the only difference that elements are put into random order before the fixed interval selection is executed.
+
+```{r}
+mySample <- select(mySample,
+                   selMeth = "randomized.fixed",
+                   aggregates = TRUE)
+head(mySample$sample[order(-mySample$sample$bv),], 10)
+```
+
+### Cell Selection
+
+The list of elements is divided into cells of fixed width, and a random monetary unit is selected from each cell.
+
+```{r}
+mySample <- select(mySample,
+                   selMeth = "cell",
+                   aggregates = TRUE)
+head(mySample$sample[order(-mySample$sample$bv),], 10)
+```
+The disadvantage of this method is that large but not individually significant items can have multiple hits, as evidence by the following:
+```{r}
+orderedSample <- mySample$sample[order(-mySample$sample$bv),]
+orderedSample[34:35,]
+```
+
+### Sieve Selection
+
+All elements' values larger than the mesh size of the sieve, calculated as the sampling interval multiplied by a random number, are selected.
+
+```{r}
+mySample <- select(mySample,
+                   selMeth = "sieve",
+                   aggregates = TRUE)
+head(mySample$sample[order(-mySample$sample$bv),], 10)
+```
+
+
+### Modified Sieve Selection
+
+A modification of the sieve method, fixing the sample size and ensuring that all individually significant items are selected.
+
+```{r}
+mySample <- select(mySample,
+                   selMeth = "modified.sieve",
+                   aggregates = TRUE)
+head(mySample$sample[order(-mySample$sample$bv),], 10)
+```

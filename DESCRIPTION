@@ -1,0 +1,29 @@
+Package: FSaudit
+Type: Package
+Title: Sampling Routines for Financial Statement Audits
+Version: 0.3.4
+Date: 2022-01-03
+Authors@R: c(person("Hoogduin", "Lucas", email = "lucas.hoogduin@mac.com", role = c("aut", "cre")),
+  person("Marcel", "Boersma", email = "Boersma.Marcel@gmail.com", role = c("aut")))   
+Description: Sampling routines for use by auditors for a financial statement
+    audit. Routines include sample size calculation, sample selection and sample
+    evaluation for attribute samples, monetary unit samples (MUS) and variables
+    samples.
+License: copyright
+Depends:
+  R (>= 3.5)
+LazyData: TRUE
+RoxygenNote: 7.2.3
+Encoding: UTF-8
+Suggests: knitr,
+    rmarkdown,
+    testthat,
+    lintr,
+    dplyr
+VignetteBuilder: knitr
+Imports: methods,
+    stats,
+    lazyeval,
+    plyr,
+    stratification,
+    tibble

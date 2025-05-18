@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Lucas Hoogduin &amp; Marcel Boersma" />
+
+<meta name="date" content="2023-08-10" />
+
+<title>Attribute sampling</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Attribute sampling</h1>
+<h4 class="author">Lucas Hoogduin &amp; Marcel Boersma</h4>
+<h4 class="date">2023-08-10</h4>
+
+
+
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p><strong>Attribute sampling</strong> is concerned with the proportion
+of a population that either has or does not have a particular attribute.
+For example, either the payment has been authorized or it has not;
+either the debt is overdue or it is not.</p>
+<p>The relevant distribution for attribute sampling is the
+hypergeometric. When the sample size is low compared to the population
+size, we may use the binomial or Poisson as an approximation.</p>
+<p>In this example we assume we test a population of 1200 elements for
+the existence of an error rate of 5%. We test with a significance level
+of 10%, and we allow no deviations in the sample.</p>
+<div id="sample-size-calculation-with-a-critical-region" class="section level3">
+<h3>Sample size calculation with a critical region</h3>
+<p>We first load the <code>FSaudit</code> library, and then create an
+<code>att</code> object with the relevant parameters.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(FSaudit)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>mySample <span class="ot">&lt;-</span> <span class="fu">att_obj</span>(<span class="at">alpha =</span> .<span class="dv">1</span>,</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a>                    <span class="at">popdev =</span> <span class="dv">60</span>,</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a>                    <span class="at">popn =</span> <span class="dv">1200</span>,</span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>                    <span class="at">c =</span> <span class="dv">0</span>)</span></code></pre></div>
+<p>To calculate the required sample size, we apply the function
+<code>size</code> on the object. The resulting sampling size <span class="math inline">\(n\)</span> is then stored within the object. We
+try different values for the critical number of deviations.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>mySample <span class="ot">&lt;-</span> <span class="fu">size</span>(mySample)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>mySample<span class="sc">$</span>n</span></code></pre></div>
+<pre><code>## [1] 45</code></pre>
+<p>To allow one or two deviations in the sample, we increase the
+critical number <code>c</code> attribute.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>mySample <span class="ot">&lt;-</span> <span class="fu">size</span>(mySample, <span class="at">c =</span> <span class="dv">1</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>mySample<span class="sc">$</span>n</span></code></pre></div>
+<pre><code>## [1] 75</code></pre>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>mySample <span class="ot">&lt;-</span> <span class="fu">size</span>(mySample, <span class="at">c =</span> <span class="dv">2</span>)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>mySample<span class="sc">$</span>n</span></code></pre></div>
+<pre><code>## [1] 102</code></pre>
+</div>
+<div id="sample-size-calculation-with-approximating-distributions" class="section level3">
+<h3>Sample size calculation with approximating distributions</h3>
+<p>The examples above show how sample sizes can be calculated for
+various critical regions. The default distribution to be used is the
+hypergeometric, but calculations can also be performed with the
+approximating binomial and Poisson distributions. In that case, the
+distribution needs to be specifically entered as an argument, the
+tolerable deviation rate <code>tdr = 60 / 1200 = 0.05</code> is entered
+as a fraction instead of the integer number of population deviations,
+and the function does not require a value for <code>popn</code>.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>myBinomialSample <span class="ot">&lt;-</span> <span class="fu">att_obj</span>(<span class="at">alpha =</span> .<span class="dv">1</span>,</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>                            <span class="at">tdr =</span> .<span class="dv">05</span>,</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>                            <span class="at">dist =</span> <span class="st">&quot;binom&quot;</span>,</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>                            <span class="at">c =</span> <span class="dv">2</span>)</span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>myBinomialSample <span class="ot">&lt;-</span> <span class="fu">size</span>(myBinomialSample)</span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>myBinomialSample<span class="sc">$</span>n</span></code></pre></div>
+<pre><code>## [1] 105</code></pre>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>myPoissonSample <span class="ot">&lt;-</span> <span class="fu">att_obj</span>(<span class="at">alpha =</span> .<span class="dv">1</span>,</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>                           <span class="at">tdr =</span> .<span class="dv">05</span>,</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>                           <span class="at">dist =</span> <span class="st">&quot;pois&quot;</span>,</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>                           <span class="at">c =</span> <span class="dv">2</span>)</span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a>myPoissonSample <span class="ot">&lt;-</span> <span class="fu">size</span>(myPoissonSample)</span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a>myPoissonSample<span class="sc">$</span>n</span></code></pre></div>
+<pre><code>## [1] 107</code></pre>
+</div>
+<div id="sample-size-calculation-with-expected-error" class="section level3">
+<h3>Sample size calculation with expected error</h3>
+<p>Sometimes it is not easy to tell in advance which critical region
+should be chosen. The critical region depends on the expected error
+(rate) in the population. The <code>size</code> function also allows the
+expected error to be assigned, instead of the critical region. Of
+course, the expected error should be smaller than <code>popdev</code>,
+or the expected error rate should be smaller than the tolerable
+deviation rate <code>tdr</code>.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>mySample2 <span class="ot">&lt;-</span> <span class="fu">att_obj</span>(<span class="at">alpha =</span> .<span class="dv">1</span>,</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>                    <span class="at">popdev =</span> <span class="dv">60</span>,</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>                    <span class="at">popn =</span> <span class="dv">1200</span>,</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>                    <span class="at">ee =</span> <span class="dv">10</span>)</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>mySample2 <span class="ot">&lt;-</span> <span class="fu">size</span>(mySample2)</span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>mySample2<span class="sc">$</span>n</span></code></pre></div>
+<pre><code>## [1] 75</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>mySample2<span class="sc">$</span>c</span></code></pre></div>
+<pre><code>## [1] 1</code></pre>
+<p>From this example we learn that for an expected error in the
+population, the suggested sample size is 75 (<code>mySample2$n</code>),
+and with that sample size up to 1 (<code>mySample2$c</code>) deviation
+can be tolerated to rejected the null hypothesis.</p>
+</div>
+<div id="evaluation" class="section level3">
+<h3>Evaluation</h3>
+<p>Attribute samples are evaluated by comparing the number of deviations
+to the critical number, or by using the standard <code>R</code>
+functions to calculate a <span class="math inline">\(p\)</span>-value.
+For example, in the first example we calculated a sample size of 45. If
+this sample reveals one error, then this number is greater than the
+critical number, and the null hypothesis cannot be rejected. Evaluation
+with the <span class="math inline">\(p\)</span>-value is as follows.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="fu">phyper</span>(<span class="at">q =</span> <span class="dv">1</span>, <span class="at">m =</span> <span class="dv">60</span>, <span class="at">n =</span> <span class="dv">1140</span>, <span class="at">k =</span> <span class="dv">45</span>)</span></code></pre></div>
+<pre><code>## [1] 0.3294032</code></pre>
+<p>Note that <code>q</code> denotes the number of deviations found,
+<code>m</code> is the number of deviations in the population,
+<code>n</code> is the number of correct elements in the population, and
+<code>k</code> is the sample size. The total number of elements in the
+population is <code>n + m = 1200</code>.</p>
+<p>In the example, since the <span class="math inline">\(p\)</span>-value of 0.3294032 is greater than the
+significance level <code>alpha</code>, the null hypothesis cannot be
+rejected.</p>
+<p>The Type II error at a 2% population error rate is <span class="math inline">\(P(k ≥ 1, n = 45, N = 1200, M = 0.02 * 1200 =
+24)\)</span> , and is calculated as follows in <code>R</code>:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="dv">1</span> <span class="sc">-</span> <span class="fu">phyper</span>(<span class="dv">0</span>, <span class="at">m =</span> <span class="dv">24</span>, <span class="at">n =</span> <span class="dv">1176</span>, <span class="at">k =</span> <span class="dv">45</span>)</span></code></pre></div>
+<pre><code>## [1] 0.6040199</code></pre>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="fu">phyper</span>(<span class="dv">0</span>, <span class="at">m =</span> <span class="dv">24</span>, <span class="at">n =</span> <span class="dv">1176</span>, <span class="at">k =</span> <span class="dv">45</span>, <span class="at">lower.tail =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<pre><code>## [1] 0.6040199</code></pre>
+<p>Note that we changed the argument <code>lower.tail</code> from its
+default value <code>TRUE</code> to <code>FALSE</code>.</p>
+<p>Similarly, when we design a plan that tolerates two errors and we
+find two, the <span class="math inline">\(p\)</span>-value <span class="math inline">\(P(k ≤ 2, n = 102, N = 1200, M = 60)\)</span>
+equals:</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a><span class="fu">phyper</span>(<span class="at">q =</span> <span class="dv">2</span>, <span class="at">m =</span> <span class="dv">60</span>, <span class="at">n =</span> <span class="dv">1140</span>, <span class="at">k =</span> <span class="dv">102</span>)</span></code></pre></div>
+<pre><code>## [1] 0.09989878</code></pre>
+<p>To carry out the test by means of a prediction interval, the
+following function calculates the upper limit <span class="math inline">\(M_U\)</span> on the number of errors in the
+population. Here we set up a sample with tolerance for finding up to 2
+deviations (critical number = 2), resulting in a sample size of 102, and
+find <code>k = 0, 1, 2 or 3</code> deviations in the sample.</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a><span class="fu">upper</span>(<span class="at">popn =</span> <span class="dv">1200</span>, <span class="at">n =</span> <span class="dv">102</span>, <span class="at">k =</span> <span class="dv">0</span>, <span class="at">alpha =</span> <span class="fl">0.10</span>)</span></code></pre></div>
+<pre><code>## [1] 25</code></pre>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" tabindex="-1"></a><span class="fu">upper</span>(<span class="at">popn =</span> <span class="dv">1200</span>, <span class="at">n =</span> <span class="dv">102</span>, <span class="at">k =</span> <span class="dv">1</span>, <span class="at">alpha =</span> <span class="fl">0.10</span>)</span></code></pre></div>
+<pre><code>## [1] 43</code></pre>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" tabindex="-1"></a><span class="fu">upper</span>(<span class="at">popn =</span> <span class="dv">1200</span>, <span class="at">n =</span> <span class="dv">102</span>, <span class="at">k =</span> <span class="dv">2</span>, <span class="at">alpha =</span> <span class="fl">0.10</span>)</span></code></pre></div>
+<pre><code>## [1] 59</code></pre>
+<div class="sourceCode" id="cb30"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" tabindex="-1"></a><span class="fu">upper</span>(<span class="at">popn =</span> <span class="dv">1200</span>, <span class="at">n =</span> <span class="dv">102</span>, <span class="at">k =</span> <span class="dv">3</span>, <span class="at">alpha =</span> <span class="fl">0.10</span>)</span></code></pre></div>
+<pre><code>## [1] 75</code></pre>
+<p>The percentage error upper bounds <span class="math inline">\(p_U\)</span> are therefore:</p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" tabindex="-1"></a><span class="fu">upper</span>(<span class="at">popn =</span> <span class="dv">1200</span>, <span class="at">n =</span> <span class="dv">102</span>, <span class="at">k =</span> <span class="dv">0</span>, <span class="at">alpha =</span> <span class="fl">0.10</span>) <span class="sc">/</span> <span class="dv">1200</span></span></code></pre></div>
+<pre><code>## [1] 0.02083333</code></pre>
+<div class="sourceCode" id="cb34"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" tabindex="-1"></a><span class="fu">upper</span>(<span class="at">popn =</span> <span class="dv">1200</span>, <span class="at">n =</span> <span class="dv">102</span>, <span class="at">k =</span> <span class="dv">1</span>, <span class="at">alpha =</span> <span class="fl">0.10</span>) <span class="sc">/</span> <span class="dv">1200</span></span></code></pre></div>
+<pre><code>## [1] 0.03583333</code></pre>
+<div class="sourceCode" id="cb36"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" tabindex="-1"></a><span class="fu">upper</span>(<span class="at">popn =</span> <span class="dv">1200</span>, <span class="at">n =</span> <span class="dv">102</span>, <span class="at">k =</span> <span class="dv">2</span>, <span class="at">alpha =</span> <span class="fl">0.10</span>) <span class="sc">/</span> <span class="dv">1200</span></span></code></pre></div>
+<pre><code>## [1] 0.04916667</code></pre>
+<div class="sourceCode" id="cb38"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" tabindex="-1"></a><span class="fu">upper</span>(<span class="at">popn =</span> <span class="dv">1200</span>, <span class="at">n =</span> <span class="dv">102</span>, <span class="at">k =</span> <span class="dv">3</span>, <span class="at">alpha =</span> <span class="fl">0.10</span>) <span class="sc">/</span> <span class="dv">1200</span></span></code></pre></div>
+<pre><code>## [1] 0.0625</code></pre>
+<p>We see that for <code>k = 0, 1, 2</code> the upper bound is less than
+the <code>tdr = 0.05</code>, and can in these cases conclude with 95%
+confidence that the population does not contain a material deviation
+rate.</p>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
