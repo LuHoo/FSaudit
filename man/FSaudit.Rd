@@ -2,6 +2,7 @@
 % Please edit documentation in R/FSaudit.R
 \docType{package}
 \name{FSaudit}
+\alias{FSaudit-package}
 \alias{FSaudit}
 \title{FSaudit: A package for statistical sampling in auditing.}
 \description{
@@ -32,3 +33,12 @@ variables sampling.
   allocation, sample selection, evaluation of the sample, and extension.
 }
 
+\author{
+\strong{Maintainer}: Hoogduin Lucas \email{lucas.hoogduin@mac.com}
+
+Authors:
+\itemize{
+  \item Marcel Boersma \email{Boersma.Marcel@gmail.com}
+}
+
+}

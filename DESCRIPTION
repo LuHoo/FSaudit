@@ -3,27 +3,33 @@ Type: Package
 Title: Sampling Routines for Financial Statement Audits
 Version: 0.3.4
 Date: 2022-01-03
-Authors@R: c(person("Hoogduin", "Lucas", email = "lucas.hoogduin@mac.com", role = c("aut", "cre")),
-  person("Marcel", "Boersma", email = "Boersma.Marcel@gmail.com", role = c("aut")))   
+Authors@R: c(
+  person("Lucas", "Hoogduin", email = "lucas.hoogduin@mac.com", role = c("aut", "cre")),
+  person("Marcel", "Boersma", email = "Boersma.Marcel@gmail.com", role = c("aut"))
+)
 Description: Sampling routines for use by auditors for a financial statement
     audit. Routines include sample size calculation, sample selection and sample
     evaluation for attribute samples, monetary unit samples (MUS) and variables
     samples.
-License: copyright
+License: CC-BY-NC-SA-4.0
+URL: https://LuHoo.github.io/FSaudit
+BugReports: https://github.com/LuHoo/FSaudit/issues
 Depends:
   R (>= 3.5)
-LazyData: TRUE
-RoxygenNote: 7.2.3
+LazyData: true
 Encoding: UTF-8
-Suggests: knitr,
-    rmarkdown,
-    testthat,
-    lintr,
-    dplyr
+RoxygenNote: 7.3.2
+Imports:
+  methods,
+  stats,
+  lazyeval,
+  plyr,
+  stratification,
+  tibble
+Suggests:
+  knitr,
+  rmarkdown,
+  testthat,
+  lintr,
+  dplyr
 VignetteBuilder: knitr
-Imports: methods,
-    stats,
-    lazyeval,
-    plyr,
-    stratification,
-    tibble
