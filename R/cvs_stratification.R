@@ -31,6 +31,8 @@
 #'   the ultimate stratum.} }
 #'
 #' @importFrom stats aggregate
+#' @importFrom stats sd
+
 
 cvs_stratify <- function(id, bv, popn = NULL, n = NULL, strata, classes = 200,
                          stratMeth = "equal") {
