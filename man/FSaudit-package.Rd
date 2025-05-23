@@ -39,6 +39,7 @@ allocation, sample selection, evaluation of the sample, and extension.
 \seealso{
 Useful links:
 \itemize{
+  \item \url{https://LuHoo.github.io/FSaudit}
   \item Report bugs at \url{https://github.com/LuHoo/FSaudit/issues}
 }
 

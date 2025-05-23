@@ -10,7 +10,8 @@ Description: Sampling routines for use by auditors for a financial statement
     audit. Routines include sample size calculation, sample selection and sample
     evaluation for attribute samples, monetary unit samples (MUS) and variables
     samples.
-License: CC-BY-NC-SA-4.0 + file LICENSEURL: https://LuHoo.github.io/FSaudit
+License: CC-BY-NC-SA-4.0
+URL: https://LuHoo.github.io/FSaudit
 BugReports: https://github.com/LuHoo/FSaudit/issues
 Depends:
   R (>= 3.5)
