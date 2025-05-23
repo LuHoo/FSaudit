@@ -1,8 +1,8 @@
 Package: FSaudit
 Type: Package
 Title: Sampling Routines for Financial Statement Audits
-Version: 0.3.4
-Date: 2022-01-03
+Version: 0.3.5
+Date: 2025-05-23
 Authors@R: c(
   person("Lucas", "Hoogduin", email = "lucas.hoogduin@mac.com", role = c("aut", "cre")),
   person("Marcel", "Boersma", email = "Boersma.Marcel@gmail.com", role = c("aut"))
