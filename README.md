@@ -11,7 +11,7 @@ FSaudit is an R package containing sampling routines tailored to the needs of au
 - Monetary Unit Sampling (MUS)
 - Variables sampling
 
-The package is designed to support internal audit teams, educators, and students working with statistical audit techniques.
+The package is designed to support educators and students working with statistical audit techniques.
 
 ---
 
