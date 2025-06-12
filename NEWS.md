@@ -1,5 +1,10 @@
+# FSaudit 1.0.0
+* First official release
+* Adds license
+* Updates Readme
+
 # FSaudit 0.2.2
-* Fizes calculation sample size CVS
+* Fixes calculation sample size CVS
 
 # FSaudit 0.2.1
 * Fixes dafa tests
@@ -30,7 +35,6 @@
 * Modified hyper_lower()
 * Modified hyper_upper()
 
-
 # FSaudit 0.1.3
 * added high error rate computation
 
@@ -51,8 +55,6 @@
 * Added test functions for object types
 * Added S3 classes documentation
 * Added test functions for attribute sampling
-
-
 
 # FSaudit 0.1.0
 * Added the function to stratify a population according to equal recorded value boundaries
